@@ -49,12 +49,26 @@ def show_leds(sense, idx, perc):
         sense.set_pixel(idx, led, col)
         
 sense = SenseHat()
+prev_sent = 0
+prev_recv = 0
+cpus = psutil.cpu_count()
 try:        
     while True:
         load = psutil.cpu_percent(interval=1, percpu=True)
-        for cpu, i in zip(load, range(4)): # TODO get number of cpus
+        for cpu, i in zip(load, range(cpus)):
             show_leds(sense, i, cpu)
             #print("{0} cpu has load {1}".format(i, cpu))
-        # TODO show memory and disk usage
+        mem = psutil.virtual_memory()
+        show_leds(sense, cpus, mem.percent)
+        disk = psutil.disk_usage('/')
+        show_leds(sense, cpus+1, disk.percent)
+        net = psutil.net_io_counters()
+        sent = (net.bytes_sent - prev_sent) / 80
+        show_leds(sense, cpus+2, sent)
+        recv = (net.bytes_recv - prev_recv) / 80
+        show_leds(sense, cpus+3, recv)
+        prev_sent = net.bytes_sent
+        prev_recv = net.bytes_recv
+        print('sent: {0}, recv: {1}'.format(sent, recv))
 finally:
     sense.clear()
